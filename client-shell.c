@@ -19,11 +19,11 @@ void error(char *msg)
 
 char **tokenize(char *line)
 {
-	char **tokens = (char **)malloc(MAX_NUM_TOKENS * sizeof(char *));
-	char *token = (char *)malloc(MAX_TOKEN_SIZE * sizeof(char));
+	char **tokens = (char **) malloc(MAX_NUM_TOKENS * sizeof(char *));
+	char *token = (char *) malloc(MAX_TOKEN_SIZE * sizeof(char));
 	int i, tokenIndex = 0, tokenNo = 0;
 
-	for(i =0; i < strlen(line); i++)
+	for(i = 0; i < strlen(line); i++)
 	{
 		char readChar = line[i];
 
@@ -32,7 +32,7 @@ char **tokenize(char *line)
 			token[tokenIndex] = '\0';
 			if (tokenIndex != 0)
 			{
-				tokens[tokenNo] = (char*)malloc(MAX_TOKEN_SIZE*sizeof(char));
+				tokens[tokenNo] = (char*) malloc(MAX_TOKEN_SIZE*sizeof(char));
 				strcpy(tokens[tokenNo++], token);
 				tokenIndex = 0; 
 			}
@@ -50,22 +50,34 @@ char **tokenize(char *line)
 
 void runProcess(char** tokens)
 {
-	if(strcmp(*tokens,"cd") == 0)
+	if(strcmp(*tokens, "cd") == 0)
 	{
 		// check if number of arguments is 2
 		if(tokens[1] == NULL || tokens[2] != NULL)
-			fprintf(stderr,"usage: cd [directory]");
+			fprintf(stderr, "usage: cd [directory]");
 		else if(chdir(tokens[1]) != 0)
 		{
 			char errorMsg[MAX_TOKEN_SIZE + 20];
-			sprintf(errorMsg,"bash: cd: %s", tokens[1]);
+			sprintf(errorMsg, "bash: cd: %s", tokens[1]);
 			perror(errorMsg);
 		}
+	}
+	else if(strcmp(*tokens, "getfl") == 0)
+	{
+		if(tokens[1] == NULL || tokens[2] != NULL)
+			fprintf(stderr, "usage: getfl [filename]");
+		else
+			getfl(tokens[1]);
 	}
 	else if (execvp(*tokens, tokens) < 0)
 	{
 		fprintf(stderr, "%s: Command not found\n", *tokens);
 	}
+}
+
+void getfl(char* filename)
+{
+	//TODO
 }
 
 int  main(void)
@@ -124,7 +136,7 @@ int  main(void)
 		}
 
 		// Freeing the allocated memory	
-		for(i=0;tokens[i]!=NULL;i++)
+		for(i = 0; tokens[i] != NULL; i++)
 		{
 			free(tokens[i]);
 		}
