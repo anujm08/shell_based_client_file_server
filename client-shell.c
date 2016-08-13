@@ -10,8 +10,8 @@
 
 void error(char *msg)
 {
-    perror(msg);
-    exit(1);
+	perror(msg);
+	exit(1);
 }
 
 char **tokenize(char *line)
@@ -48,16 +48,20 @@ char **tokenize(char *line)
 void runProcess(char** tokens)
 {
 	if(strcmp(*tokens,"cd") == 0)
-  	{
-  		if(tokens[1] == NULL || tokens[2] != NULL)
-  			fprintf(stderr,"Usage: cd [directory]");
-  		else
-  			chdir(tokens[1]);
-  	}
-  	else if (execvp(*tokens, tokens) < 0)
-  	{
-  		fprintf(stderr, "%s: Command not found\n", *tokens);
-  	}
+	{
+		if(tokens[1] == NULL || tokens[2] != NULL)
+			fprintf(stderr,"usage: cd [directory]");
+		else if(chdir(tokens[1]) != 0)
+		{
+			char errorMsg[MAX_TOKEN_SIZE + 20];
+			sprintf(errorMsg,"bash: cd: %s", tokens[1]);
+			perror(errorMsg);
+		}
+	}
+	else if (execvp(*tokens, tokens) < 0)
+	{
+		fprintf(stderr, "%s: Command not found\n", *tokens);
+	}
 }
 
 int  main(void)
@@ -71,7 +75,7 @@ int  main(void)
 	   
 		printf("Hello>");     
 		bzero(line, MAX_INPUT_SIZE);
-		gets(line);           
+		fgets(line, sizeof(line), stdin);           
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
 
@@ -82,17 +86,17 @@ int  main(void)
 
 		if (pid < 0)
 		{
-        	perror("ERROR: forking child process failed");
-     		continue;
-     	}
-     	else if (pid == 0)
-        {
-          	runProcess(tokens);
-     	}
-     	else 
-     	{
-          	waitpid(pid, NULL, 0);
-     	}
+			perror("ERROR: forking child process failed");
+			continue;
+		}
+		else if (pid == 0)
+		{
+			runProcess(tokens);
+		}
+		else 
+		{
+			waitpid(pid, NULL, 0);
+		}
 
 		// Freeing the allocated memory	
 		for(i=0;tokens[i]!=NULL;i++)
