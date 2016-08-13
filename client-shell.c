@@ -8,6 +8,9 @@
 #define MAX_TOKEN_SIZE 64
 #define MAX_NUM_TOKENS 64
 
+char* serverIP;
+char* serverPort;
+
 void error(char *msg)
 {
 	perror(msg);
@@ -49,6 +52,7 @@ void runProcess(char** tokens)
 {
 	if(strcmp(*tokens,"cd") == 0)
 	{
+		// check if number of arguments is 2
 		if(tokens[1] == NULL || tokens[2] != NULL)
 			fprintf(stderr,"usage: cd [directory]");
 		else if(chdir(tokens[1]) != 0)
@@ -80,6 +84,27 @@ int  main(void)
 		tokens = tokenize(line);
 
 		//do whatever you want with the commands, here we just print them
+
+		if(strcmp(*tokens, "server") == 0)
+		{
+			if(tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL)
+				fprintf(stderr,"usage: server [server-ip] [server-port]");
+			else
+			{
+				if(serverIP != NULL)
+					free(serverIP);
+
+				serverIP = (char*) malloc((strlen(tokens[1])) * sizeof(char));
+				strncpy(serverIP, tokens[1], strlen(tokens[1]) + 1);
+
+				if(serverPort == NULL)
+					free(serverPort);
+
+				serverPort = (char*) malloc((strlen(tokens[2])) * sizeof(char));
+				strncpy(serverPort, tokens[2], strlen(tokens[2]) + 1);
+			}
+			continue;
+		}
 
 		pid_t pid;
 		pid = fork();
