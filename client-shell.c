@@ -89,7 +89,9 @@ void runProcess(char** tokens)
 			fprintf(stderr, "usage: getsq [file1] [file2] ...\n");
 		}
 		else if (serverIP == NULL || serverPort == NULL)
+		{
 			fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
+		}
 		else
 		{
 			int i;
@@ -111,6 +113,41 @@ void runProcess(char** tokens)
 				}
 			}
 			getfl(tokens[i], "nodisplay");
+		}
+	}
+	else if (strcmp(*tokens, "getpl") == 0)
+	{
+		// TODO : Can use group IDs??
+		if (tokens[1] == NULL)
+		{
+			fprintf(stderr, "usage: getpl [file1] [file2] ...\n");
+		}
+		else if (serverIP == NULL || serverPort == NULL)
+		{
+			fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
+		}
+		else
+		{
+			int i;
+			for (i = 1; tokens[i] != NULL; i++)
+			{
+				pid_t pid = fork();
+				if (pid < 0)
+				{
+					perror("ERROR: forking child process failed");
+					return;
+				}
+				if (pid == 0)				
+				{
+					getfl(tokens[i], "display");
+				}
+			}
+			while (i > 1)
+			{
+				waitpid(0, NULL, 0);
+				i--;
+			}
+			exit(0);
 		}
 	}
 	else if (execvp(*tokens, tokens) < 0)
