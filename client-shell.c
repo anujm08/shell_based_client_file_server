@@ -49,9 +49,9 @@ char **tokenize(char *line)
 	return tokens;
 }
 
-void getfl(char* filename)
+void getfl(char* filename, char* displayMode)
 {
-	char *arguments[] = {"./get-one-file-sig", filename, serverIP, serverPort, "display", NULL};
+	char *arguments[] = {"./get-one-file-sig", filename, serverIP, serverPort, displayMode, NULL};
 	if (execvp(arguments[0], arguments))
 		perror("Error : getfl");
 }
@@ -62,7 +62,9 @@ void runProcess(char** tokens)
 	{
 		// check if number of arguments is 2
 		if (tokens[1] == NULL || tokens[2] != NULL)
+		{
 			fprintf(stderr, "usage: cd [directory]\n");
+		}
 		else if (chdir(tokens[1]) != 0)
 		{
 			char errorMsg[MAX_TOKEN_SIZE + 20];
@@ -77,8 +79,39 @@ void runProcess(char** tokens)
 		else if (serverIP == NULL || serverPort == NULL)
 			fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
 		else
-			getfl(tokens[1]);
+			getfl(tokens[1], "display");
 
+	}
+	else if (strcmp(*tokens, "getsq") == 0)
+	{
+		if (tokens[1] == NULL)
+		{
+			fprintf(stderr, "usage: getsq [file1] [file2] ...\n");
+		}
+		else if (serverIP == NULL || serverPort == NULL)
+			fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
+		else
+		{
+			int i;
+			for (i = 1; tokens[i+1] != NULL; i++)
+			{
+				pid_t pid = fork();
+				if (pid < 0)
+				{
+					perror("ERROR: forking child process failed");
+					return;
+				}
+				if (pid == 0)				
+				{
+					getfl(tokens[i], "nodisplay");
+				}
+				else
+				{
+					waitpid(pid, NULL, 0);
+				}
+			}
+			getfl(tokens[i], "nodisplay");
+		}
 	}
 	else if (execvp(*tokens, tokens) < 0)
 	{

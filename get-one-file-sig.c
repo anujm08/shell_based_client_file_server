@@ -54,7 +54,7 @@ void getFile(char* file, int sockfd, int display)
             }
             else
             {
-            	error("File requested by client not found on server\n");
+            	fprintf(stderr, "File requested by client not found on server\n");
             }
             break;
         }
