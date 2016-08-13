@@ -46,29 +46,29 @@ void serveFile(int sock)
 
     /* Open the requested file */
     FILE *fp = fopen(filename, "rb");
-    if(fp == NULL)	// handle this in client
+    if (fp == NULL)	// handle this in client
     	error("ERROR file not found");
 
     
     /* Send requested file */
     printf("Sending file %s to client\n", filename);
 
-    while(1)
+    while (1)
     {
     	int bytes_read = fread(buffer, sizeof(char), sizeof(buffer), fp);
-    	if(bytes_read > 0)
+    	if (bytes_read > 0)
     	{
     		int bytes_sent = send(sock, buffer, bytes_read, 0);
     		if (bytes_sent < bytes_read) 
     			error("ERROR writing to socket");
     	}
-    	if(bytes_read == 0)
+    	if (bytes_read == 0)
     	{
     		printf("File %s successfully sent to client\n",filename);
     		fclose(fp);
     		break;
     	}
-    	if(bytes_read < 0)
+    	if (bytes_read < 0)
     	{
     		error("ERROR reading from file");
     	}

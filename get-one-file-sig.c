@@ -39,17 +39,18 @@ void getFile(char* file, int sockfd, int display)
     // a check to ensure if the server actually sent the data or not
 
     bytes_downloaded = 0;
-    while(1)
+    while (1)
     {
+        bzero(buffer, sizeof(buffer));
         int bytes_recv = recv(sockfd, buffer, sizeof(buffer), 0);
         
         if (bytes_recv < 0) 
             error("ERROR reading from socket");
         else if (bytes_recv == 0)
         {
-            if(bytes_downloaded > 0)
+            if (bytes_downloaded > 0)
             {
-                printf("File received by client\n");
+                //printf("File received by client\n");
             }
             else
             {
@@ -59,7 +60,7 @@ void getFile(char* file, int sockfd, int display)
         }
         else
         {
-        	if(display)
+        	if (display)
         		printf("%s", buffer);
             bytes_downloaded += bytes_recv;
         }
@@ -73,8 +74,8 @@ int main(int argc, char *argv[])
     signal(SIGINT, sigintHandler);
 
     if (argc != 5) {
-       fprintf(stderr, "usage :  %s [file] [host] [port] [display-mode]\n", argv[0]);
-       exit(0);
+        fprintf(stderr, "usage :  %s [file] [host] [port] [display-mode]\n", argv[0]);
+        exit(0);
     }
 
     int port, sockfd, display, yes = 1;
@@ -89,7 +90,7 @@ int main(int argc, char *argv[])
     port = atoi(argv[3]);
     
     // display mode
-    if(strcmp(argv[4],"display")==0)
+    if (strcmp(argv[4],"display")==0)
     	display = 1;
     else
     	display = 0;
@@ -104,7 +105,6 @@ int main(int argc, char *argv[])
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     if (sockfd < 0) 
     {
-        printf("Sockfd %d\n", sockfd);
         error("ERROR opening socket");
     }
 
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     /* connect to server */
     if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
-    printf("Client connected to the server\n");
+    //printf("Client connected to the server\n");
 
     getFile(file, sockfd, display);
 
