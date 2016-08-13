@@ -45,6 +45,20 @@ char **tokenize(char *line)
 	return tokens;
 }
 
+void runProcess(char** tokens)
+{
+	if(strcmp(*tokens,"cd") == 0)
+  	{
+  		if(tokens[1] == NULL || tokens[2] != NULL)
+  			fprintf(stderr,"Usage: cd [directory]");
+  		else
+  			chdir(tokens[1]);
+  	}
+  	else if (execvp(*tokens, tokens) < 0)
+  	{
+  		fprintf(stderr, "%s: Command not found\n", *tokens);
+  	}
+}
 
 int  main(void)
 {
@@ -58,7 +72,6 @@ int  main(void)
 		printf("Hello>");     
 		bzero(line, MAX_INPUT_SIZE);
 		gets(line);           
-		printf("Got command %s\n", line);
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
 
@@ -69,16 +82,12 @@ int  main(void)
 
 		if (pid < 0)
 		{
-        	perror("ERROR: forking child process failed\n");
+        	perror("ERROR: forking child process failed");
      		continue;
      	}
      	else if (pid == 0)
         {
-          	if (execvp(*tokens, tokens) < 0)
-          	{
-               printf("ERROR: exec failed\n");
-               continue;
-          	}
+          	runProcess(tokens);
      	}
      	else 
      	{
