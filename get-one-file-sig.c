@@ -46,14 +46,8 @@ void getFile(char* file, int sockfd)
             error("ERROR reading from socket");
         else if (curr_recv == 0)
         {
-            if (BYTES_RECV > 0)
+            if (BYTES_RECV == 0)
             {   
-                // file download complete
-                if (DISPLAY)
-                    printf("\n");
-            }
-            else
-            {
                 fprintf(stderr, "ERROR file requested by client not found on server\n");
             }
             break;
@@ -62,7 +56,10 @@ void getFile(char* file, int sockfd)
         {   
             buffer[curr_recv] = '\0';
             if (DISPLAY)
+            {
                 printf("%s", buffer);
+                fflush(stdout);
+            }
             BYTES_RECV += curr_recv;
         }
     }

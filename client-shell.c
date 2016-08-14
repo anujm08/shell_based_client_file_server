@@ -7,6 +7,7 @@
 #include <string>
 #include <set>
 #include <pthread.h>
+#include <fcntl.h>
 using namespace std;
 
 static unsigned int MAX_INPUT_SIZE = 1024;
@@ -22,12 +23,6 @@ static set<pid_t> BGprocs;
 static pthread_t reaperT;
 
 #include "functions.h"
-
-void error(char *msg)
-{
-    perror(msg);
-    exit(1);
-}
 
 char **tokenize(char *line)
 {
@@ -110,10 +105,29 @@ void FGProcess(char** tokens)
     // TODO : move usage inside the functions?
     if (ftoken == "getfl")
     {
-        if (tokens[1] == NULL || tokens[2] != NULL)
-           fprintf(stderr, "usage: getfl [filename]\n");
-        else
+        if (tokens[1] == NULL)
+        {
+            fprintf(stderr, "usage: getfl [filename]\n");
+        }
+        else if (tokens[2] == NULL)
+        {
             getfl(tokens[1], "display");
+        }
+        else if (strcmp(tokens[2], ">") == 0)
+        {
+            if(tokens[3] == NULL || tokens[4] != NULL)
+                fprintf(stderr, "usage: getfl [filename] > [outputfile]\n");
+            else
+                getflRedirection(tokens[1], tokens[3]);
+        }
+        else if (strcmp(tokens[2], "|") == 0) 
+        {
+            // TODO : Pipe Implementation
+        }
+        else
+        {
+            fprintf(stderr, "usage: getfl [filename]\n");
+        }
     }
     else if (ftoken == "getsq")
     {
@@ -146,7 +160,7 @@ void BGProcess(char** tokens)
     if (ftoken == "getbg")
     {
         if (tokens[1] == NULL || tokens[2] != NULL)
-           fprintf(stderr, "usage: getbg [filename]\n");
+            fprintf(stderr, "usage: getbg [filename]\n");
         else
             getfl(tokens[1], "nodisplay");
     }
@@ -184,6 +198,12 @@ void shellProcess(char** tokens)
         for (auto pid : BGprocs)
             if(kill(pid, SIGINT) != 0)
                 printf("couldn't send signal to process");
+        
+        while (!BGprocs.empty())
+        {
+            pid_t killpid = waitpid(-1, NULL, 0);
+            BGprocs.erase(killpid);
+        }
         exit(0);
     }
 

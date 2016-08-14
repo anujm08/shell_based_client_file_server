@@ -1,4 +1,10 @@
 
+void error(char *msg)
+{
+    perror(msg);
+    exit(1);
+}
+
 void sigIntHandler(int sig_num)
 {
     printf("\nHello>");
@@ -20,9 +26,9 @@ void getfl(char* filename, char* displayMode)
     // TODO : potential memory leak
     char* sIP = strdup(serverIP.c_str());
     char* sPort = strdup(serverPort.c_str());
-    char *arguments[] = {"./get-one-file-sig", filename, sIP, sPort, displayMode, NULL};
+    char* arguments[] = {"./get-one-file-sig", filename, sIP, sPort, displayMode, NULL};
     if (execvp(arguments[0], arguments))
-        perror("ERROR getfl");
+        perror("ERROR getfile");
 }
 
 void getsq(char** tokens)
@@ -62,4 +68,20 @@ void getpl(char** tokens)
         waitpid(-1, NULL, 0);
 
     exit(0);
+}
+
+void getflRedirection(char* downloadFile, char* outputFile)
+{
+    int fd = open(outputFile, O_RDWR | O_CREAT | O_TRUNC);
+    if (fd < 0 )
+    {
+        error("Can't open output file");
+    }
+    else
+    {
+        dup2(fd, fileno(stdout));
+        //printf("download : %s, output: \n", downloadFile, outputFile);
+        getfl(downloadFile, "display");
+        close(fd);
+    }
 }
