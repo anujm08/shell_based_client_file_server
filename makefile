@@ -1,10 +1,12 @@
-all: client-shell client server
+all: client-shell get-one-file-sig get-one-file server-slow
 
-client: get-one-file.c get-one-file-sig.c
+get-one-file: get-one-file.c
 	gcc -w -o get-one-file get-one-file.c
+
+get-one-file-sig: get-one-file-sig.c
 	gcc -w -o get-one-file-sig get-one-file-sig.c
 
-server: server-slow.c
+server-slow: server-slow.c
 	gcc -w -o server-slow server-slow.c -lpthread
 
 client-shell: client-shell.c

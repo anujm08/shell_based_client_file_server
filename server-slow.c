@@ -5,7 +5,9 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-int BUFFER_SIZE = 1024;
+static unsigned int BUFFER_SIZE = 1024;
+static unsigned int REAP_TIME = 5;
+static unsigned int SLEEP_TIME = 1;
 
 void error(char *msg)
 {
@@ -25,7 +27,7 @@ void reapChildren()
 	    {
 	        printf("A child process %d terminated\n", killpid);
 	    }
-        sleep(5);
+        sleep(REAP_TIME);
 	}
 }
 
@@ -46,9 +48,8 @@ void serveFile(int sock)
 
     /* Open the requested file */
     FILE *fp = fopen(filename, "rb");
-    if (fp == NULL)	// handle this in client
+    if (fp == NULL)
     	error("ERROR file not found");
-
     
     /* Send requested file */
     printf("Sending file %s to client\n", filename);
@@ -73,7 +74,7 @@ void serveFile(int sock)
     		error("ERROR reading from file");
     	}
 
-        sleep(1);
+        sleep(SLEEP_TIME);
     }
     close(sock);
     exit(0);
@@ -139,13 +140,14 @@ int main(int argc, char *argv[])
 	    	serveFile(newsockfd);
 	    }
 	    else
-	    {
-	    	while ((killpid = waitpid(-1, NULL, WNOHANG)) > 0)
-	    	{
-	    		printf("A child process %d terminated\n", killpid);
-	    	}
+	    {  
             // the parent doesn't need the new socket, hence closed
-	    	close(newsockfd);
+            close(newsockfd);
+	    	
+            // wait for child process
+            // TODO : waipid(-1, NULL, WNOHANG) can be replaced by wait(NULL)?
+            while ((killpid = waitpid(-1, NULL, WNOHANG)) > 0)
+	    		printf("A child process %d terminated\n", killpid);
 	    }
 	}
     // join reaper thread
