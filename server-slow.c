@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     char buffer[BUFFER_SIZE];
     struct sockaddr_in serv_addr, cli_addr;
     pid_t pid, killpid;
-    if (argc < 2 || argc > 2) {
+    if (argc != 2) {
         printf(stderr,"usage :  %s [port]\n", argv[0]);
         exit(1);
     }

@@ -7,10 +7,11 @@
 
 #define MAX_INPUT_SIZE 1024
 #define MAX_TOKEN_SIZE 64
-#define MAX_NUM_TOKENS 32
+#define MAX_NUM_TOKENS 64
 
-char* serverIP;
-char* serverPort;
+static char* serverIP;
+static char* serverPort;
+#include "functions.h"
 
 void error(char *msg)
 {
@@ -49,106 +50,44 @@ char **tokenize(char *line)
     return tokens;
 }
 
-void getfl(char* filename, char* displayMode)
-{
-    char *arguments[] = {"./get-one-file-sig", filename, serverIP, serverPort, displayMode, NULL};
-    if (execvp(arguments[0], arguments))
-        perror("Error : getfl");
-}
-
+// TODO : make the "server settings set" error common
 void runProcess(char** tokens)
 {
     if (strcmp(*tokens, "cd") == 0)
-    {
+    {   
         // check if number of arguments is 2
         if (tokens[1] == NULL || tokens[2] != NULL)
-        {
             fprintf(stderr, "usage: cd [directory]\n");
-        }
-        else if (chdir(tokens[1]) != 0)
-        {
-            char errorMsg[MAX_TOKEN_SIZE + 20];
-            sprintf(errorMsg, "bash: cd: %s\n", tokens[1]);
-            perror(errorMsg);
-        }
+        else
+            cd(tokens);
     }
     else if (strcmp(*tokens, "getfl") == 0)
     {
         if (tokens[1] == NULL || tokens[2] != NULL)
             fprintf(stderr, "usage: getfl [filename]\n");
         else if (serverIP == NULL || serverPort == NULL)
-            fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
+            fprintf(stderr, "ERROR server info not set\n");
         else
             getfl(tokens[1], "display");
-
     }
     else if (strcmp(*tokens, "getsq") == 0)
     {
         if (tokens[1] == NULL)
-        {
             fprintf(stderr, "usage: getsq [file1] [file2] ...\n");
-        }
         else if (serverIP == NULL || serverPort == NULL)
-        {
-            fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
-        }
+            fprintf(stderr, "ERROR server info not set\n");
         else
-        {
-            int i;
-            for (i = 1; tokens[i+1] != NULL; i++)
-            {
-                pid_t pid = fork();
-                if (pid < 0)
-                {
-                    perror("ERROR: forking child process failed");
-                    return;
-                }
-                if (pid == 0)               
-                {
-                    getfl(tokens[i], "nodisplay");
-                }
-                else
-                {
-                    waitpid(pid, NULL, 0);
-                }
-            }
-            getfl(tokens[i], "nodisplay");
-        }
+            getsq(tokens);
     }
     else if (strcmp(*tokens, "getpl") == 0)
     {
         // TODO : Can use group IDs??
         if (tokens[1] == NULL)
-        {
             fprintf(stderr, "usage: getpl [file1] [file2] ...\n");
-        }
         else if (serverIP == NULL || serverPort == NULL)
-        {
-            fprintf(stderr, "error: server info unavailable, use server command to set server IP and port\n");
-        }
+            fprintf(stderr, "ERROR server info not set\n");
         else
-        {
-            int i;
-            for (i = 1; tokens[i] != NULL; i++)
-            {
-                pid_t pid = fork();
-                if (pid < 0)
-                {
-                    perror("ERROR: forking child process failed");
-                    return;
-                }
-                if (pid == 0)               
-                {
-                    getfl(tokens[i], "display");
-                }
-            }
-            while (i > 1)
-            {
-                waitpid(0, NULL, 0);
-                i--;
-            }
-            exit(0);
-        }
+            getpl(tokens);
     }
     else if (execvp(*tokens, tokens) < 0)
     {
@@ -159,8 +98,7 @@ void runProcess(char** tokens)
 int  main(void)
 {
     char line[MAX_INPUT_SIZE];          
-    char **tokens;              
-    int i;
+    char **tokens;
 
     while (1)
     {           
@@ -233,7 +171,7 @@ int  main(void)
         }
 
         // Freeing the allocated memory 
-        for (i = 0; tokens[i] != NULL; i++)
+        for (int i = 0; tokens[i] != NULL; i++)
         {
             free(tokens[i]);
         }
