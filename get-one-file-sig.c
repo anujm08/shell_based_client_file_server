@@ -18,7 +18,7 @@ void error(char *msg)
 
 void sigIntHandler(int sig_num)
 {
-    printf("\n\nReceived SIGINT, downloaded %d bytes so far\n", BYTES_RECV);
+    printf("\nprocess %d received SIGINT, downloaded %d bytes so far\n", getpid(), BYTES_RECV);
     // exiting with standard exit code for termination
     exit(130);
 }

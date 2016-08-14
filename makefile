@@ -9,7 +9,7 @@ get-one-file-sig: get-one-file-sig.c
 server-slow: server-slow.c
 	gcc -w -o server-slow server-slow.c -lpthread
 
-client-shell: client-shell.c
+client-shell: client-shell.c functions.h
 	g++ -w -o client-shell -std=c++11 client-shell.c
 
 clean: 

@@ -15,6 +15,8 @@ static unsigned int MAX_NUM_TOKENS = 64;
 static string serverIP = "";
 static string serverPort = "";
 static set<string> FGcommands = {"getfl", "getsq", "getpl"};
+static set<string> BGcommands = {"getbg"};
+static set<pid_t> BGprocs;
 
 #include "functions.h"
 
@@ -55,7 +57,7 @@ char **tokenize(char *line)
     return tokens;
 }
 
-// TODO : "default" to be removed
+// [0]TODO : "default" to be removed
 void setServer(char** tokens, bool defaultx = false)
 {
     if ((tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL) and not defaultx)
@@ -76,8 +78,9 @@ void setServer(char** tokens, bool defaultx = false)
 
 void FGProcess(char** tokens)
 {
-    string ftoken(*tokens);
+    string ftoken(tokens[0]);
 
+    // TODO : move usage inside the functions?
     if (ftoken == "getfl")
     {
         if (tokens[1] == NULL || tokens[2] != NULL)
@@ -94,7 +97,6 @@ void FGProcess(char** tokens)
     }
     else if (ftoken == "getpl")
     {
-        // TODO : Can use group IDs??
         if (tokens[1] == NULL)
             fprintf(stderr, "usage: getpl [file1] [file2] ...\n");
         else
@@ -102,10 +104,31 @@ void FGProcess(char** tokens)
     }
 }
 
+void BGProcess(char** tokens)
+{
+    string ftoken(tokens[0]);
+
+    // set the gpid of bg process to be different from the parent
+    // this way, sigint recvd by the shell, won't be signalled to 
+    // this process too
+    if (setpgid(0, 0) != 0)
+        error("ERROR gpid could not be set");
+    
+    // TODO : move usage inside the functions?
+    if (ftoken == "getbg")
+    {
+        if (tokens[1] == NULL || tokens[2] != NULL)
+           fprintf(stderr, "usage: getbg [filename]\n");
+        else
+            getfl(tokens[1], "nodisplay");
+    }
+}
+
 // TODO : make the "server settings set" error common
 void shellProcess(char** tokens)
 {   
     string ftoken(*tokens);
+
     if (ftoken == "server")
     {
         setServer(tokens);
@@ -126,13 +149,21 @@ void shellProcess(char** tokens)
             cd(tokens);
     }
 
+    // it's the 'exit' command
+    else if (ftoken == "exit")
+    {   
+        for (auto pid : BGprocs)
+            if(kill(pid, SIGINT) != 0)
+                printf("couldn't send signal to process");
+        // to be changed
+        exit(0);
+    }
+
     // it's a foreground command
     else if (FGcommands.find(ftoken) != FGcommands.end())
     {   
         if (serverIP == "" || serverPort == "")
-        {
             fprintf(stderr, "ERROR server info not set\n");
-        }
         else
         {
             pid_t pid;
@@ -149,6 +180,27 @@ void shellProcess(char** tokens)
         }
     }
 
+    // it's a background command
+    else if (BGcommands.find(ftoken) != BGcommands.end())
+    {   
+        if (serverIP == "" || serverPort == "")
+            fprintf(stderr, "ERROR server info not set\n");
+        else
+        {
+            pid_t pid;
+            pid = fork();
+
+            if (pid < 0)
+                perror("ERROR forking child process failed");
+            else if (pid == 0)
+                // child does the BG server process
+                BGProcess(tokens);
+            else
+                // shell doesn't wait for forked child
+                BGprocs.insert(pid);
+        }
+    }
+
     // it's a miscellaneous linux command
     else 
     {
@@ -162,7 +214,7 @@ void shellProcess(char** tokens)
         {
             if (execvp(*tokens, tokens) < 0)
             {
-                fprintf(stderr, "%s: Command not found\n", *tokens);
+                fprintf(stderr, "%s: Command not found\n", tokens[0]);
                 exit(0);
             }
         }
@@ -174,13 +226,13 @@ void shellProcess(char** tokens)
 }
 
 int  main(void)
-{
+{   
+    signal(SIGINT, sigIntHandler);
     char line[MAX_INPUT_SIZE];          
     char **tokens;
 
     while (1)
     {           
-       
         printf("Hello>");
 
         bzero(line, MAX_INPUT_SIZE);

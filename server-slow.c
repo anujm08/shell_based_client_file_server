@@ -25,7 +25,7 @@ void reapChildren()
     {
 	    while ((killpid = wait(NULL)) > 0)
 	    {
-	        printf("A child process %d terminated\n", killpid);
+	        printf("a child process %d terminated\n", killpid);
 	    }
         sleep(REAP_TIME);
 	}
@@ -52,7 +52,7 @@ void serveFile(int sock)
     	error("ERROR file not found");
     
     /* Send requested file */
-    printf("Sending file %s to client\n", filename);
+    printf("sending file %s to client\n", filename);
 
     while (1)
     {
@@ -65,7 +65,7 @@ void serveFile(int sock)
     	}
     	if (bytes_read == 0)
     	{
-    		printf("File %s successfully sent to client\n",filename);
+    		printf("file %s successfully sent to client\n",filename);
     		fclose(fp);
     		break;
     	}
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 	    newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clilen);
 	    if (newsockfd < 0) 
 	        error("ERROR on accept\n");
-	    printf("New client connected\n");
+	    printf("new client connected\n");
 
 	    pid = fork();
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
             // wait for child process
             // TODO : waipid(-1, NULL, WNOHANG) can be replaced by wait(NULL)?
             while ((killpid = waitpid(-1, NULL, WNOHANG)) > 0)
-	    		printf("A child process %d terminated\n", killpid);
+	    		printf("child process %d terminated\n", killpid);
 	    }
 	}
     // join reaper thread

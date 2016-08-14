@@ -1,3 +1,9 @@
+void sigIntHandler(int sig_num)
+{
+    printf("\nHello>");
+    fflush(stdout);
+}
+
 
 void cd(char** tokens)
 {
@@ -21,23 +27,18 @@ void getfl(char* filename, char* displayMode)
 
 void getsq(char** tokens)
 {
-    int i;
-    for (i = 1; tokens[i] != NULL; i++)
+    for (int i = 1; tokens[i] != NULL; i++)
     {
         pid_t pid = fork();
-        if (pid < 0)
+        if (pid < 0) 
         {
-            perror("ERROR: forking child process failed");
+            perror("ERROR forking child process failed");
             return;
         }
-        if (pid == 0)               
-        {
+        else if (pid == 0)               
             getfl(tokens[i], "nodisplay");
-        }
         else
-        {
             waitpid(pid, NULL, 0);
-        }
     }
     exit(0);
 }
@@ -50,19 +51,15 @@ void getpl(char** tokens)
         pid_t pid = fork();
         if (pid < 0)
         {
-            perror("ERROR: forking child process failed");
+            perror("ERROR forking child process failed");
             return;
         }
-        if (pid == 0)         
-        {
+        else if (pid == 0)         
             getfl(tokens[i], "nodisplay");
-        }
     }
-    while (i > 1)
-    {
+    for (; i > 1; i--)
         // TODO : waipid(-1, NULL, 0) can be replaced by wait(NULL)?
         waitpid(-1, NULL, 0);
-        i--;
-    }
+
     exit(0);
 }
