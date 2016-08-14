@@ -10,7 +10,7 @@ server-slow: server-slow.c
 	gcc -w -o server-slow server-slow.c -lpthread
 
 client-shell: client-shell.c
-	gcc -w -o client-shell client-shell.c
+	g++ -w -o client-shell -std=c++11 client-shell.c
 
 clean: 
 	rm get-one-file

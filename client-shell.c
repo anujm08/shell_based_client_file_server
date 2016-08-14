@@ -4,13 +4,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <string>
+#include <set>
+using namespace std;
 
-#define MAX_INPUT_SIZE 1024
-#define MAX_TOKEN_SIZE 64
-#define MAX_NUM_TOKENS 64
+static unsigned int MAX_INPUT_SIZE = 1024;
+static unsigned int MAX_TOKEN_SIZE = 64;
+static unsigned int MAX_NUM_TOKENS = 64;
 
-static char* serverIP;
-static char* serverPort;
+static string serverIP = "";
+static string serverPort = "";
+static set<string> FGcommands = {"getfl", "getsq", "getpl"};
+
 #include "functions.h"
 
 void error(char *msg)
@@ -50,45 +55,69 @@ char **tokenize(char *line)
     return tokens;
 }
 
-// TODO : make the "server settings set" error common
-void runProcess(char** tokens)
+// TODO : "default" to be removed
+void setServer(char** tokens, bool defaultx = false)
 {
-    if (strcmp(*tokens, "server") == 0)
+    if ((tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL) and not defaultx)
+        fprintf(stderr, "usage: server [server-ip] [server-port]\n");
+    else
     {
-        if (tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL)
-            fprintf(stderr, "usage: server [server-ip] [server-port]\n");
+        if (defaultx) 
+            serverIP = "127.0.0.1";
         else
-        {
-            if (serverIP != NULL)
-                free(serverIP);
+            serverIP = string(tokens[1]);
 
-            serverIP = (char*) malloc((strlen(tokens[1])) * sizeof(char));
-            strncpy(serverIP, tokens[1], strlen(tokens[1]) + 1);
-
-            if (serverPort == NULL)
-                free(serverPort);
-
-            serverPort = (char*) malloc((strlen(tokens[2])) * sizeof(char));
-            strncpy(serverPort, tokens[2], strlen(tokens[2]) + 1);
-        }
+        if (defaultx) 
+            serverPort = "5001";
+        else
+            serverPort = string(tokens[2]);
     }
-    // to assign default server ip and port 
-    // TO BE REMOVED
-    else if (strcmp(*tokens, "ser") == 0)
+}
+
+void FGProcess(char** tokens)
+{
+    string ftoken(*tokens);
+
+    if (ftoken == "getfl")
     {
-        if (serverIP != NULL)
-            free(serverIP);
-
-        serverIP = (char*) malloc((strlen("127.0.0.1")) * sizeof(char));
-        strncpy(serverIP, "127.0.0.1", strlen("127.0.0.1") + 1);
-
-        if (serverPort == NULL)
-            free(serverPort);
-
-        serverPort = (char*) malloc((strlen("5001")) * sizeof(char));
-        strncpy(serverPort, "5001", strlen("5001") + 1);
+        if (tokens[1] == NULL || tokens[2] != NULL)
+           fprintf(stderr, "usage: getfl [filename]\n");
+        else
+            getfl(tokens[1], "display");
     }
-    else if (strcmp(*tokens, "cd") == 0)
+    else if (ftoken == "getsq")
+    {
+        if (tokens[1] == NULL)
+            fprintf(stderr, "usage: getsq [file1] [file2] ...\n");
+        else
+            getsq(tokens);
+    }
+    else if (ftoken == "getpl")
+    {
+        // TODO : Can use group IDs??
+        if (tokens[1] == NULL)
+            fprintf(stderr, "usage: getpl [file1] [file2] ...\n");
+        else
+            getpl(tokens);
+    }
+}
+
+// TODO : make the "server settings set" error common
+void shellProcess(char** tokens)
+{   
+    string ftoken(*tokens);
+    if (ftoken == "server")
+    {
+        setServer(tokens);
+    }
+    // TODO : to be removed
+    else if (ftoken == "ser")
+    {
+        setServer(tokens, true);
+    }
+
+    // it's the 'cd' command
+    else if (ftoken == "cd")
     {   
         // check if number of arguments is 2
         if (tokens[1] == NULL || tokens[2] != NULL)
@@ -96,91 +125,31 @@ void runProcess(char** tokens)
         else
             cd(tokens);
     }
-    else if (strcmp(*tokens, "getfl") == 0)
-    {
-        if (tokens[1] == NULL || tokens[2] != NULL)
-        {
-           fprintf(stderr, "usage: getfl [filename]\n");
-        }
-        else if (serverIP == NULL || serverPort == NULL)
+
+    // it's a foreground command
+    else if (FGcommands.find(ftoken) != FGcommands.end())
+    {   
+        if (serverIP == "" || serverPort == "")
         {
             fprintf(stderr, "ERROR server info not set\n");
         }
         else
         {
-            pid_t pid = fork();
-            
+            pid_t pid;
+            pid = fork();
+
             if (pid < 0)
-            {
                 perror("ERROR forking child process failed");
-            }
             else if (pid == 0)
-            {
-                getfl(tokens[1], "display");
-            }
+                // child does the FG server process
+                FGProcess(tokens);
             else 
-            {
+                // shell waits for forked child
                 waitpid(pid, NULL, 0);
-            }
         }
     }
-    else if (strcmp(*tokens, "getsq") == 0)
-    {
-        if (tokens[1] == NULL)
-        {
-            fprintf(stderr, "usage: getsq [file1] [file2] ...\n");
-        }
-        else if (serverIP == NULL || serverPort == NULL)
-        {
-            fprintf(stderr, "ERROR server info not set\n");
-        }
-        else
-        {
-            pid_t pid = fork();
-            
-            if (pid < 0)
-            {
-                perror("ERROR forking child process failed");
-            }
-            else if (pid == 0)
-            {
-                getsq(tokens);
-            }
-            else 
-            {
-                waitpid(pid, NULL, 0);
-            }
-        }
-    }
-    else if (strcmp(*tokens, "getpl") == 0)
-    {
-        // TODO : Can use group IDs??
-        if (tokens[1] == NULL)
-        {
-            fprintf(stderr, "usage: getpl [file1] [file2] ...\n");
-        }
-        else if (serverIP == NULL || serverPort == NULL)
-        {
-            fprintf(stderr, "ERROR server info not set\n");
-        }
-        else
-        {
-            pid_t pid = fork();
-            
-            if (pid < 0)
-            {
-                perror("ERROR forking child process failed");
-            }
-            else if (pid == 0)
-            {
-                getpl(tokens);
-            }
-            else 
-            {
-                waitpid(pid, NULL, 0);
-            }
-        }
-    }
+
+    // it's a miscellaneous linux command
     else 
     {
         pid_t pid = fork();
@@ -224,15 +193,12 @@ int  main(void)
         if (tokens[0] == NULL)
             continue;
 
-        runProcess(tokens);
+        shellProcess(tokens);
 
         // Freeing the allocated memory 
         for (int i = 0; tokens[i] != NULL; i++)
-        {
             free(tokens[i]);
-        }
         free(tokens);
-
     }   
     return 0;
 }
