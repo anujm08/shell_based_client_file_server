@@ -87,8 +87,39 @@ void getflRedirection(char* downloadFile, char* outputFile)
     else
     {
         dup2(fd, fileno(stdout));
-        //printf("download : %s, output: \n", downloadFile, outputFile);
         getfl(downloadFile, "display");
         close(fd);
+    }
+}
+
+void getflPipe(char* downloadFile, char** tokens)
+{
+    int fd[2];
+    pipe(fd);
+
+    pid_t childpid = fork();
+
+    if (childpid < 0)
+    {
+        perror("ERROR forking child process failed");
+    }
+    else if (childpid == 0)
+    {
+        close(fd[0]);
+        dup2(fd[1], fileno(stdout));
+        close(fd[1]);
+        getfl(downloadFile, "display");
+    }
+    else 
+    {
+        close(fd[1]);
+        dup2(fd[0], fileno(stdin));
+        close(fd[0]);
+        if (execvp(*tokens, tokens) < 0)
+        {
+            fprintf(stderr, "%s: Command not found\n", tokens[0]);
+            exit(0);
+        }
+        waitpid(childpid, NULL, 0);
     }
 }

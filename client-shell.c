@@ -122,7 +122,10 @@ void FGProcess(char** tokens)
         }
         else if (strcmp(tokens[2], "|") == 0) 
         {
-            // TODO : Pipe Implementation
+            if(tokens[3] == NULL)
+                fprintf(stderr, "usage: getfl [filename] > command\n");
+            else
+                getflPipe(tokens[1], &tokens[3]);
         }
         else
         {
