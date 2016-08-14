@@ -5,10 +5,15 @@ void error(char *msg)
     exit(1);
 }
 
-void sigIntHandler(int sig_num)
+void sigIntHandlerPseudo(int sig_num)
 {
     printf("\nHello>");
     fflush(stdout);
+}
+
+void sigIntHandlerKill(int sig_num)
+{   
+    exit(0);
 }
 
 void cd(char** tokens)
@@ -32,7 +37,8 @@ void getfl(char* filename, char* displayMode)
 }
 
 void getsq(char** tokens)
-{
+{   
+    signal(SIGINT, sigIntHandlerKill);
     for (int i = 1; tokens[i] != NULL; i++)
     {
         pid_t pid = fork();
@@ -50,7 +56,8 @@ void getsq(char** tokens)
 }
 
 void getpl(char** tokens)
-{
+{   
+    signal(SIGINT, sigIntHandlerKill);
     int i;
     for (i = 1; tokens[i] != NULL; i++)
     {

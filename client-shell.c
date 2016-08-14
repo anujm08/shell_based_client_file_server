@@ -275,7 +275,7 @@ void shellProcess(char** tokens)
 
 int  main(void)
 {   
-    signal(SIGINT, sigIntHandler);
+    signal(SIGINT, sigIntHandlerPseudo);
     char line[MAX_INPUT_SIZE];          
     char **tokens;
 
