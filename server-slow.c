@@ -1,12 +1,15 @@
 #include <stdio.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <pthread.h>
 
 static unsigned int BUFFER_SIZE = 1024;
-static unsigned int REAP_TIME = 5;
+static unsigned int REAP_TIME = 4;
 static unsigned int SLEEP_TIME = 1;
 
 void error(char *msg)
@@ -17,30 +20,28 @@ void error(char *msg)
 
 // a seperate function, which is executed by a thread
 // whose job is to reap children of this process
-void reapChildren()
-{
-    // wait for any child
+void* reapChildren(void* x)
+{   
     pid_t killpid;
     while (1)
     {
-	    while ((killpid = wait(NULL)) > 0)
-	    {
-	        printf("a child process %d terminated\n", killpid);
-	    }
+        pid_t killpid = wait(NULL);
+        if (killpid > 0)
+            printf("a child process %d terminated\n", killpid);
         sleep(REAP_TIME);
-	}
+    }
 }
 
 // function which server calls to serve the requsted file to the client
 void serveFile(int sock)
 {
-	char buffer[BUFFER_SIZE];
-	bzero(buffer, BUFFER_SIZE); 
+    char buffer[BUFFER_SIZE];
+    bzero(buffer, BUFFER_SIZE); 
     
-	/* Read file requesst from client */
+    /* Read file requesst from client */
     int bytes_read = read(sock, buffer, sizeof(buffer));
     if (bytes_read < 0)
-    	error("ERROR reading from socket");
+        error("ERROR reading from socket");
     
     /* extract filename */
     char* filename = (char*)malloc(strlen(buffer) - 3);
@@ -49,30 +50,30 @@ void serveFile(int sock)
     /* Open the requested file */
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL)
-    	error("ERROR file not found");
+        error("ERROR file not found");
     
     /* Send requested file */
     printf("sending file %s to client\n", filename);
 
     while (1)
     {
-    	int bytes_read = fread(buffer, sizeof(char), sizeof(buffer), fp);
-    	if (bytes_read > 0)
-    	{
-    		int bytes_sent = send(sock, buffer, bytes_read, 0);
-    		if (bytes_sent < bytes_read) 
-    			error("ERROR writing to socket");
-    	}
-    	if (bytes_read == 0)
-    	{
-    		printf("file %s successfully sent to client\n",filename);
-    		fclose(fp);
-    		break;
-    	}
-    	if (bytes_read < 0)
-    	{
-    		error("ERROR reading from file");
-    	}
+        int bytes_read = fread(buffer, sizeof(char), sizeof(buffer), fp);
+        if (bytes_read > 0)
+        {
+            int bytes_sent = send(sock, buffer, bytes_read, 0);
+            if (bytes_sent < bytes_read) 
+                error("ERROR writing to socket");
+        }
+        if (bytes_read == 0)
+        {
+            printf("file %s successfully sent to client\n",filename);
+            fclose(fp);
+            break;
+        }
+        if (bytes_read < 0)
+        {
+            error("ERROR reading from file");
+        }
 
         sleep(SLEEP_TIME);
     }
@@ -87,7 +88,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr, cli_addr;
     pid_t pid, killpid;
     if (argc != 2) {
-        printf(stderr,"usage :  %s [port]\n", argv[0]);
+        fprintf(stderr,"usage :  %s [port]\n", argv[0]);
         exit(1);
     }
 
@@ -118,39 +119,36 @@ int main(int argc, char *argv[])
     listen(sockfd, 100);
     clilen = sizeof(cli_addr);
 
-	while (1)
-	{
+    while (1)
+    {
         /* accept a new request, create a newsockfd */
-	    newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clilen);
-	    if (newsockfd < 0) 
-	        error("ERROR on accept\n");
-	    printf("new client connected\n");
+        newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clilen);
+        if (newsockfd < 0) 
+            error("ERROR on accept\n");
+        printf("new client connected\n");
 
-	    pid = fork();
+        pid = fork();
 
-	    if (pid < 0)
-	    {
-	    	error("ERROR could not fork new process\n");
-	    }
-	    if (pid == 0)
-	    {  
+        if (pid < 0)
+        {
+            error("ERROR could not fork new process\n");
+        }
+        if (pid == 0)
+        {  
             // close the current socket (inherited from the parent)
-	    	close(sockfd);
+            close(sockfd);
             // serve file on the newsocket created for the client connection
-	    	serveFile(newsockfd);
-	    }
-	    else
-	    {  
+            serveFile(newsockfd);
+        }
+        else
+        {  
             // the parent doesn't need the new socket, hence closed
             close(newsockfd);
-	    	
+            
             // wait for child process
-            // TODO : waipid(-1, NULL, WNOHANG) can be replaced by wait(NULL)?
             while ((killpid = waitpid(-1, NULL, WNOHANG)) > 0)
-	    		printf("child process %d terminated\n", killpid);
-	    }
-	}
-    // join reaper thread
-    pthread_join(tid, NULL);
+                printf("child process %d terminated\n", killpid);
+        }
+    }
     return 0; 
 }

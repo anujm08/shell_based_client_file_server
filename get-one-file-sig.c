@@ -5,6 +5,8 @@
 #include <netdb.h> 
 #include <stdlib.h>
 #include <signal.h>
+#include <unistd.h>
+#include <string.h>
 
 static unsigned int BYTES_RECV = 0;
 static unsigned int BUFFER_SIZE = 1024;
@@ -38,15 +40,17 @@ void getFile(char* file, int sockfd)
     while (1)
     {
         bzero(buffer, BUFFER_SIZE);
-        int bytes_recv = recv(sockfd, buffer, BUFFER_SIZE, 0);
+        int curr_recv = recv(sockfd, buffer, BUFFER_SIZE, 0);
         
-        if (bytes_recv < 0) 
+        if (curr_recv < 0) 
             error("ERROR reading from socket");
-        else if (bytes_recv == 0)
+        else if (curr_recv == 0)
         {
             if (BYTES_RECV > 0)
-            {
-                //printf("file download complete\n");
+            {   
+                // file download complete
+                if (DISPLAY)
+                    printf("\n");
             }
             else
             {
@@ -55,10 +59,11 @@ void getFile(char* file, int sockfd)
             break;
         }
         else
-        {
+        {   
+            buffer[curr_recv] = '\0';
             if (DISPLAY)
                 printf("%s", buffer);
-            BYTES_RECV += bytes_recv;
+            BYTES_RECV += curr_recv;
         }
     }
     // close the socket

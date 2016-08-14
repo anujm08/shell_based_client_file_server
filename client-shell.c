@@ -6,17 +6,20 @@
 #include <sys/wait.h>
 #include <string>
 #include <set>
+#include <pthread.h>
 using namespace std;
 
 static unsigned int MAX_INPUT_SIZE = 1024;
 static unsigned int MAX_TOKEN_SIZE = 64;
 static unsigned int MAX_NUM_TOKENS = 64;
+static unsigned int REAP_TIME = 4;
 
 static string serverIP = "";
 static string serverPort = "";
 static set<string> FGcommands = {"getfl", "getsq", "getpl"};
 static set<string> BGcommands = {"getbg"};
 static set<pid_t> BGprocs;
+static pthread_t reaperT;
 
 #include "functions.h"
 
@@ -57,7 +60,31 @@ char **tokenize(char *line)
     return tokens;
 }
 
-// [0]TODO : "default" to be removed
+void* reapChildren(void* x)
+{
+    while (true)
+    {
+        pid_t killpid = wait(NULL);
+        if (killpid > 0)
+        {
+            if (BGprocs.find(killpid) != BGprocs.end())
+            {
+                // TODO : add checks for the actual status
+                printf("\nbackground download process %d terminated\nHello>", killpid);
+                fflush(stdout);
+                BGprocs.erase(killpid);
+            }
+            else
+            {   
+                // TODO : this shouldn't happen right?
+                printf("a non background process %d terminated\n", killpid);
+            }
+        }
+        sleep(REAP_TIME);
+    }
+}
+
+// TODO : "default" to be removed
 void setServer(char** tokens, bool defaultx = false)
 {
     if ((tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL) and not defaultx)
@@ -157,7 +184,6 @@ void shellProcess(char** tokens)
         for (auto pid : BGprocs)
             if(kill(pid, SIGINT) != 0)
                 printf("couldn't send signal to process");
-        // to be changed
         exit(0);
     }
 
@@ -233,7 +259,10 @@ int  main(void)
     char line[MAX_INPUT_SIZE];          
     char **tokens;
 
-    while (1)
+    // thread which reaps children
+    pthread_create(&reaperT, NULL, reapChildren, NULL);
+
+    while (true)
     {           
         printf("Hello>");
 
@@ -253,6 +282,6 @@ int  main(void)
         for (int i = 0; tokens[i] != NULL; i++)
             free(tokens[i]);
         free(tokens);
-    }   
+    }
     return 0;
 }

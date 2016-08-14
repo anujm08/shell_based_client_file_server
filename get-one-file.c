@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 
 static unsigned int BUFFER_SIZE = 1024;
 static unsigned int DISPLAY = 0;
