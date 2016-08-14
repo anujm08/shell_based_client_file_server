@@ -5,6 +5,9 @@
 #include <netdb.h> 
 #include <stdlib.h>
 
+static unsigned int BUFFER_SIZE = 1024;
+static unsigned int DISPLAY = 0;
+
 void error(char *msg)
 {
     perror(msg);
@@ -13,9 +16,9 @@ void error(char *msg)
 
 // function to fetch file from sockfd
 // display = 1 => display to stdout contents of downloaded file, 0 => not display
-void getFile(char* file, int sockfd, int display)
+void getFile(char* file, int sockfd)
 {
-    char buffer[1024];
+    char buffer[BUFFER_SIZE];
     /* request created based on MODE */    
     sprintf(buffer, "get %s", file);
 
@@ -23,14 +26,13 @@ void getFile(char* file, int sockfd, int display)
     int bytes_sent = write(sockfd, buffer, strlen(buffer));
     if (bytes_sent < 0) 
         error("ERROR writing to socket");
-    bzero(buffer, 256);
 
     // a check to ensure if the server actually sent the data or not
     int received = 0;
     while (1)
     {
-        bzero(buffer, sizeof(buffer));
-        int bytes_recv = recv(sockfd, buffer, sizeof(buffer), 0);
+        bzero(buffer, BUFFER_SIZE);
+        int bytes_recv = recv(sockfd, buffer, BUFFER_SIZE, 0);
         
         if (bytes_recv < 0) 
             error("ERROR reading from socket");
@@ -42,14 +44,14 @@ void getFile(char* file, int sockfd, int display)
             }
             else
             {
-            	error("File requested by client not found on server\n");
+                error("ERROR file requested by client not found on server\n");
             }
             break;
         }
         else
         {
-        	if (display)
-        		printf("%s", buffer);
+            if (DISPLAY)
+                printf("%s", buffer);
             received = 1;
         }
     }
@@ -65,21 +67,18 @@ int main(int argc, char *argv[])
     }
 
     int port, sockfd, display, yes = 1;
-	struct hostent *server;
-	char* file;   
-    char buffer[1024];
+    struct hostent *server;
+    char* file;
     struct sockaddr_in serv_addr;
 
-	file = (char*)malloc(strlen(argv[1]));
+    file = (char*)malloc(strlen(argv[1]));
     strncpy(file, argv[1], strlen(argv[1]));
 
     port = atoi(argv[3]);
     
     // display mode
-    if (strcmp(argv[4],"display")==0)
-    	display = 1;
-    else
-    	display = 0;
+    if (strcmp(argv[4], "display") == 0)
+        DISPLAY = 1;
 
     // server    
     server = gethostbyname(argv[2]);
@@ -90,9 +89,7 @@ int main(int argc, char *argv[])
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     if (sockfd < 0) 
-    {
         error("ERROR opening socket");
-    }
 
     bzero((char*)&serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -105,7 +102,7 @@ int main(int argc, char *argv[])
         error("ERROR connecting");
     //printf("Client connected to the server\n");
 
-    getFile(file, sockfd, display);
+    getFile(file, sockfd);
 
     return 0;
 }
