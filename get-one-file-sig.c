@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
-int bytes_downloaded;
+static unsigned int BYTES_RECV = 0;
+static unsigned int BUFFER_SIZE = 1024;
 
 void error(char *msg)
 {
@@ -14,47 +15,41 @@ void error(char *msg)
     exit(0);
 }
 
-void sigintHandler(int sig_num)
+void sigIntHandler(int sig_num)
 {
-    printf("Received SIGINT; downloaded %d bytes so far\n", bytes_downloaded);
+    printf("Received SIGINT, downloaded %d bytes so far\n", BYTES_RECV);
     // exiting with standard exit code for termination
     exit(130);
 }
-
 
 // function to fetch file from sockfd
 // display = 1 => display to stdout contents of downloaded file, 0 => not display
 void getFile(char* file, int sockfd, int display)
 {
-    char buffer[1024];
-    /* request created based on MODE */    
+    char buffer[BUFFER_SIZE];    
     sprintf(buffer, "get %s", file);
 
     /* send user message to server */
     int bytes_sent = write(sockfd, buffer, strlen(buffer));
     if (bytes_sent < 0) 
         error("ERROR writing to socket");
-    bzero(buffer, 256);
 
-    // a check to ensure if the server actually sent the data or not
-
-    bytes_downloaded = 0;
     while (1)
     {
-        bzero(buffer, sizeof(buffer));
-        int bytes_recv = recv(sockfd, buffer, sizeof(buffer), 0);
+        bzero(buffer, BUFFER_SIZE);
+        int bytes_recv = recv(sockfd, buffer, BUFFER_SIZE, 0);
         
         if (bytes_recv < 0) 
             error("ERROR reading from socket");
         else if (bytes_recv == 0)
         {
-            if (bytes_downloaded > 0)
+            if (BYTES_RECV > 0)
             {
-                //printf("File received by client\n");
+                //printf("file download complete\n");
             }
             else
             {
-            	fprintf(stderr, "File requested by client not found on server\n");
+            	fprintf(stderr, "ERROR file requested by client not found on server\n");
             }
             break;
         }
@@ -62,7 +57,7 @@ void getFile(char* file, int sockfd, int display)
         {
         	if (display)
         		printf("%s", buffer);
-            bytes_downloaded += bytes_recv;
+            BYTES_RECV += bytes_recv;
         }
     }
     // close the socket
@@ -71,7 +66,7 @@ void getFile(char* file, int sockfd, int display)
 
 int main(int argc, char *argv[])
 {
-    signal(SIGINT, sigintHandler);
+    signal(SIGINT, sigIntHandler);
 
     if (argc != 5) {
         fprintf(stderr, "usage :  %s [file] [host] [port] [display-mode]\n", argv[0]);
@@ -80,8 +75,7 @@ int main(int argc, char *argv[])
 
     int port, sockfd, display, yes = 1;
 	struct hostent *server;
-	char* file;   
-    char buffer[1024];
+	char* file;
     struct sockaddr_in serv_addr;
 
 	file = (char*)malloc(strlen(argv[1]));
@@ -90,10 +84,9 @@ int main(int argc, char *argv[])
     port = atoi(argv[3]);
     
     // display mode
-    if (strcmp(argv[4],"display")==0)
+    display = 0;
+    if (strcmp(argv[4], "display") == 0)
     	display = 1;
-    else
-    	display = 0;
 
     // server    
     server = gethostbyname(argv[2]);
@@ -104,9 +97,7 @@ int main(int argc, char *argv[])
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     if (sockfd < 0) 
-    {
         error("ERROR opening socket");
-    }
 
     bzero((char*)&serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
