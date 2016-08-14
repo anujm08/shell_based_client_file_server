@@ -4,7 +4,7 @@ void cd(char** tokens)
     if (chdir(tokens[1]) != 0)
     {
         char errorMsg[MAX_TOKEN_SIZE + 20];
-        sprintf(errorMsg, "bash: cd: %s\n", tokens[1]);
+        sprintf(errorMsg, "bash: cd: %s", tokens[1]);
         perror(errorMsg);
     }
 }
@@ -36,6 +36,7 @@ void getsq(char** tokens)
             waitpid(pid, NULL, 0);
         }
     }
+    exit(0);
 }
 
 void getpl(char** tokens)
@@ -51,7 +52,7 @@ void getpl(char** tokens)
         }
         if (pid == 0)         
         {
-            getfl(tokens[i], "display");
+            getfl(tokens[i], "nodisplay");
         }
     }
     while (i > 1)
