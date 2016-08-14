@@ -102,6 +102,7 @@ void FGProcess(char** tokens)
         else
             getpl(tokens);
     }
+    exit(0);
 }
 
 void BGProcess(char** tokens)
@@ -122,6 +123,7 @@ void BGProcess(char** tokens)
         else
             getfl(tokens[1], "nodisplay");
     }
+    exit(0);
 }
 
 // TODO : make the "server settings set" error common
