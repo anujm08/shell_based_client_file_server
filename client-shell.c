@@ -8,6 +8,8 @@
 #include <set>
 #include <pthread.h>
 #include <fcntl.h>
+#include <mutex>
+
 using namespace std;
 
 static unsigned int MAX_INPUT_SIZE = 1024;
@@ -19,8 +21,10 @@ static string serverIP = "";
 static string serverPort = "";
 static set<string> FGcommands = {"getfl", "getsq", "getpl"};
 static set<string> BGcommands = {"getbg"};
+
 static set<pid_t> BGprocs;
 static pthread_t reaperT;
+static mutex MTX;
 
 #include "functions.h"
 
@@ -61,19 +65,19 @@ void* reapChildren(void* x)
     {
         pid_t killpid = wait(NULL);
         if (killpid > 0)
-        {
+        {   
+            MTX.lock();
             if (BGprocs.find(killpid) != BGprocs.end())
             {
-                // TODO : add checks for the actual status
                 printf("\nbackground download process %d terminated\nHello>", killpid);
                 fflush(stdout);
                 BGprocs.erase(killpid);
             }
             else
             {   
-                // TODO : this shouldn't happen right?
-                printf("a non background process %d terminated\n", killpid);
+                // reaped a FGproc
             }
+            MTX.unlock();
         }
         sleep(REAP_TIME);
     }
@@ -198,15 +202,20 @@ void shellProcess(char** tokens)
     // it's the 'exit' command
     else if (ftoken == "exit")
     {   
+        // send SIGINT to all BGprocs
         for (auto pid : BGprocs)
             if(kill(pid, SIGINT) != 0)
                 printf("couldn't send signal to process");
         
+        // reap the BGProcs
+        MTX.lock();
         while (!BGprocs.empty())
         {
             pid_t killpid = waitpid(-1, NULL, 0);
             BGprocs.erase(killpid);
         }
+        MTX.unlock();
+
         exit(0);
     }
 
@@ -227,6 +236,8 @@ void shellProcess(char** tokens)
                 FGProcess(tokens);
             else 
                 // shell waits for forked child
+                // sometimes, the reaper thread might reap this pid
+                // process, and this will return immediately
                 waitpid(pid, NULL, 0);
         }
     }
@@ -246,9 +257,12 @@ void shellProcess(char** tokens)
             else if (pid == 0)
                 // child does the BG server process
                 BGProcess(tokens);
-            else
+            else {
                 // shell doesn't wait for forked child
+                MTX.lock();
                 BGprocs.insert(pid);
+                MTX.unlock();
+            }
         }
     }
 
