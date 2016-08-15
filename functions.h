@@ -16,6 +16,38 @@ void sigIntHandlerKill(int sig_num)
     exit(0);
 }
 
+
+char **tokenize(char *line)
+{
+    char **tokens = (char**) malloc(MAX_NUM_TOKENS * sizeof(char *));
+    char *token = (char*) malloc(MAX_TOKEN_SIZE * sizeof(char));
+    int tokenIndex = 0, tokenNo = 0;
+
+    for (int i = 0; i < strlen(line); i++)
+    {
+        char readChar = line[i];
+
+        if (readChar == ' ' || readChar == '\n' || readChar == '\t')
+        {
+            token[tokenIndex] = '\0';
+            if (tokenIndex != 0)
+            {
+                tokens[tokenNo] = (char*) malloc(MAX_TOKEN_SIZE * sizeof(char));
+                strcpy(tokens[tokenNo++], token);
+                tokenIndex = 0; 
+            }
+        } 
+        else
+        {
+            token[tokenIndex++] = readChar;
+        }
+    }
+
+    free(token);
+    tokens[tokenNo] = NULL;
+    return tokens;
+}
+
 void cd(char** tokens)
 {
     if (chdir(tokens[1]) != 0)
@@ -79,23 +111,27 @@ void getpl(char** tokens)
 
 void getflRedirection(char* downloadFile, char* outputFile)
 {
-    int fd = open(outputFile, O_RDWR | O_CREAT | O_TRUNC);
-    if (fd < 0 )
+    int fileFD = open(outputFile, O_RDWR | O_CREAT | O_TRUNC);
+    if (fileFD < 0 )
     {
         error("Can't open output file");
     }
     else
     {
-        dup2(fd, fileno(stdout));
+        // make STDOUT fd become a copy of fileFD
+        dup2(fileFD, STDOUT_FILENO);
+        // we can close fileFD as we have made a copy
+        close(fileFD);
         getfl(downloadFile, "display");
-        close(fd);
     }
 }
 
 void getflPipe(char* downloadFile, char** tokens)
 {
-    int fd[2];
-    pipe(fd);
+    int newFD[2];
+    // creates new file descriptors, pointing to a pipe inode
+    // newFD[0] for reading while newFD[1] for writing
+    pipe(newFD);
 
     pid_t childpid = fork();
 
@@ -103,23 +139,32 @@ void getflPipe(char* downloadFile, char** tokens)
     {
         perror("ERROR forking child process failed");
     }
+    // the child process will exec the get-one-file executable
     else if (childpid == 0)
-    {
-        close(fd[0]);
-        dup2(fd[1], fileno(stdout));
-        close(fd[1]);
+    {   
+        // close the reading FD
+        close(newFD[0]);
+        // write to writing FD instead of STDOUT
+        dup2(newFD[1], STDOUT_FILENO);
+        // we can close writing FD as we have made a copy 
+        close(newFD[1]);
         getfl(downloadFile, "display");
     }
+    // parent executes the right side command
     else 
     {
-        close(fd[1]);
-        dup2(fd[0], fileno(stdin));
-        close(fd[0]);
+        // close the writing FD
+        close(newFD[1]);
+        // read from reading FD instead of STDIN
+        dup2(newFD[0], STDIN_FILENO);
+        // we can close reading FD as we have made a copy 
+        close(newFD[0]);
         if (execvp(*tokens, tokens) < 0)
         {
             fprintf(stderr, "%s: Command not found\n", tokens[0]);
             exit(0);
         }
+        // reap the dead child 
         waitpid(childpid, NULL, 0);
     }
 }
