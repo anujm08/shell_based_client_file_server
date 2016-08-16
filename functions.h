@@ -7,7 +7,15 @@ void error(char *msg)
 
 void sigIntHandlerPseudo(int sig_num)
 {
-    printf("\nHello>");
+    // wait for all childs with same process group ID i.e all foreground process
+    while (1)
+    {
+        pid_t killpid = waitpid(0, NULL, 0);
+        if (errno == ECHILD)
+            break;
+    }
+    if (!FGProcessRunning)
+        printf("\nHello>");
     fflush(stdout);
 }
 
@@ -164,7 +172,5 @@ void getflPipe(char* downloadFile, char** tokens)
             fprintf(stderr, "%s: Command not found\n", tokens[0]);
             exit(0);
         }
-        // reap the dead child 
-        waitpid(childpid, NULL, 0);
     }
 }
