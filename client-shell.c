@@ -25,6 +25,7 @@ static set<string> BGcommands = {"getbg"};
 static set<pid_t> BGprocs;
 static pthread_t reaperT;
 static mutex MTX;
+static bool FGProcessRunning = false;
 
 #include "functions.h"
 
@@ -208,14 +209,20 @@ void shellProcess(char** tokens)
                 printf("couldn't send signal to process");
         
         // reap the BGProcs
-        MTX.lock();
+        /*MTX.lock();
         while (!BGprocs.empty())
         {
             pid_t killpid = waitpid(-1, NULL, 0);
             BGprocs.erase(killpid);
         }
-        MTX.unlock();
-
+        MTX.unlock();*/
+        // wait until all childs are reaped
+        while (1)
+        {
+            pid_t killpid = wait(NULL);
+            if (errno == ECHILD)
+                break;
+        }
         exit(0);
     }
 
@@ -301,10 +308,12 @@ int  main(void)
 
     while (true)
     {           
+        FGProcessRunning = false;
         printf("Hello>");
 
         bzero(line, MAX_INPUT_SIZE);
-        fgets(line, MAX_INPUT_SIZE, stdin);           
+        fgets(line, MAX_INPUT_SIZE, stdin);
+        FGProcessRunning = true;
         //terminate the string with a new line
         line[strlen(line)] = '\n';
         tokens = tokenize(line);
