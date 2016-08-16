@@ -178,20 +178,13 @@ void shellProcess(char** tokens)
                 printf("couldn't send signal to process");
         
         // reap the BGProcs
-        /*MTX.lock();
+        MTX.lock();
         while (!BGprocs.empty())
         {
             pid_t killpid = waitpid(-1, NULL, 0);
             BGprocs.erase(killpid);
         }
-        MTX.unlock();*/
-        // wait until all childs are reaped
-        while (1)
-        {
-            pid_t killpid = wait(NULL);
-            if (errno == ECHILD)
-                break;
-        }
+        MTX.unlock();
         exit(0);
     }
 
