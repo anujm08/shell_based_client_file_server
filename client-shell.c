@@ -335,15 +335,11 @@ void shellProcess(char** tokens)
             if(kill(pid, SIGINT) != 0)
                 printf("couldn't send signal to process");
         
-        // reap the BGProcs
+        // -1 specifies `any` child, so even though gpid is different
+        // the bgprocs will be reaped, as they are children of the shell
+        // the MTX stops the reaper thread from reaping any processes
         MTX.lock();
-        while (!BGprocs.empty())
-        {   
-            // wait for any process in BGProcs
-            // the bgprocs will be reaped, as they are children of the shell
-            pid_t killpid = waitpid(*BGprocs.begin(), NULL, 0);
-            BGprocs.erase(killpid);
-        }
+        while (waitpid(-1, NULL, 0) > 0) {}
         MTX.unlock();
         exit(0);
     }
