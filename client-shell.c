@@ -25,7 +25,7 @@ static set<string> BGcommands = {"getbg"};
 static set<pid_t> BGprocs;
 static pthread_t reaperT;
 static mutex MTX;
-static bool FGProcessRunning = false;
+static bool FGWasRunning = false;
 
 static char* getflExec;
 
@@ -39,13 +39,10 @@ void error(char *msg)
 void sigIntHandlerPseudo(int sig_num)
 {
     // wait for all childs with same process group ID i.e all foreground process
-    while (1)
-    {
-        pid_t killpid = waitpid(0, NULL, 0);
-        if (errno == ECHILD)
-            break;
-    }
-    if (!FGProcessRunning)
+    while (waitpid(0, NULL, 0) > 0) {}
+
+    // if a fg process was not even running, then we need a new Hello> prompt
+    if (!FGWasRunning)
         printf("\nHello>");
     fflush(stdout);
 }
@@ -110,6 +107,7 @@ void getfl(char* filename, char* displayMode)
 void getsq(char** tokens)
 {   
     signal(SIGINT, sigIntHandlerKill);
+    // fork one, exec one, reap one
     for (int i = 1; tokens[i] != NULL; i++)
     {
         pid_t pid = fork();
@@ -130,6 +128,7 @@ void getpl(char** tokens)
 {   
     signal(SIGINT, sigIntHandlerKill);
     int i;
+    // fork the processes simultaneously
     for (i = 1; tokens[i] != NULL; i++)
     {
         pid_t pid = fork();
@@ -141,8 +140,8 @@ void getpl(char** tokens)
         else if (pid == 0)         
             getfl(tokens[i], "nodisplay");
     }
+    // wait for each process
     for (; i > 1; i--)
-        // TODO : waipid(-1, NULL, 0) can be replaced by wait(NULL)?
         waitpid(-1, NULL, 0);
 
     exit(0);
@@ -450,12 +449,12 @@ int  main(void)
 
     while (true)
     {           
-        FGProcessRunning = false;
+        FGWasRunning = false;
         printf("Hello>");
 
         bzero(line, MAX_INPUT_SIZE);
         fgets(line, MAX_INPUT_SIZE, stdin);
-        FGProcessRunning = true;
+        FGWasRunning = true;
         //terminate the string with a new line
         line[strlen(line)] = '\n';
         tokens = tokenize(line);
