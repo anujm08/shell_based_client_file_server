@@ -1,0 +1,78 @@
+-- cd without directory name generates error
+Hello>cd
+usage: cd [directory]
+
+-- cd to non-existing directory
+Hello>cd abc
+bash: cd: abc: No such file or directory
+
+-- cd
+Hello>cd files
+
+-- getfl without setting server info
+Hello>getfl files/foo0.txt files/foo1.txt
+ERROR server info not set
+
+-- setting server info and doing getsq, followed by Ctrl+C
+Hello>server 127.0.0.1 5001
+Hello>getsq files/foo0.txt files/foo1.txt
+^C
+process 16151 received SIGINT, downloaded 2048 bytes so far
+
+-- getpl, followed by Ctrl+C
+Hello>getpl files/foo0.txt files/foo1.txt files/foo2.txt
+^C
+
+process 16156 received SIGINT, downloaded 1024 bytes so far
+process 16154 received SIGINT, downloaded 1024 bytes so far
+
+process 16155 received SIGINT, downloaded 1024 bytes so far
+
+-- built-in command ls
+Hello>ls -l
+total 580
+-rwxrwxr-x 1 anuj anuj  80456 Aug 17 21:59 client-shell
+-rw-rw-r-- 1 anuj anuj  12012 Aug 17 21:59 client-shell.c
+drwxrwxr-x 2 anuj anuj 135168 Aug 17 20:54 files
+-rwxrwxr-x 1 anuj anuj  13864 Aug 17 13:12 get-one-file
+-rw-rw-r-- 1 anuj anuj   2789 Aug 14 22:44 get-one-file.c
+-rwxrwxr-x 1 anuj anuj  14192 Aug 17 21:44 get-one-file-sig
+-rw-rw-r-- 1 anuj anuj   2984 Aug 17 22:03 get-one-file-sig.c
+-rw-rw-r-- 1 anuj anuj    450 Aug 17 21:11 makefile
+-rw-rw-r-- 1 anuj anuj   1990 Aug 17 21:46 recv1.txt
+-rwxrwxr-x 1 anuj anuj   1990 Aug 17 21:43 recv2.txt
+-rwxrwxr-x 1 anuj anuj  14240 Aug 17 13:12 server-slow
+-rw-rw-r-- 1 anuj anuj   4144 Aug 14 22:44 server-slow.c
+-rw-rw-r-- 1 anuj anuj      0 Aug 17 22:00 testcases.txt
+-rw-rw-r-- 1 anuj anuj     54 Aug 17 13:26 todo.txt
+-rw-rw-r-- 1 anuj anuj 282624 Aug 17 22:11 typescript
+
+-- piping in getfl
+Hello>getfl makefile | grep rm
+	rm get-one-file
+	rm get-one-file-sig
+	rm server-slow
+	rm client-shell
+
+-- Output Redirection invalid no of arguments
+Hello>getfl makefile > recv.txt recv1.txt
+usage: getfl [filename] > [outputfile]
+
+-- invalid command
+Hello>abc
+abc: Command not found
+
+-- background process shows status on termination
+Hello>getbg files/foo0.txt
+Hello>
+background download process 16443 terminated
+
+-- background processes no effect on Ctrl+C, terminates on writing exit and shell terminates
+Hello>getbg files/foo1.txt
+Hello>getbg files/foo2.txt
+Hello>^C
+Hello>exit
+
+process 17253 received SIGINT, downloaded 10240 bytes so far
+
+process 17256 received SIGINT, downloaded 2048 bytes so far

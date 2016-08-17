@@ -339,7 +339,7 @@ void shellProcess(char** tokens)
         MTX.lock();
         while (!BGprocs.empty())
         {   
-            // -1 specifies `any` child, so even though gpid is different
+            // wait for any process in BGProcs
             // the bgprocs will be reaped, as they are children of the shell
             pid_t killpid = waitpid(*BGprocs.begin(), NULL, 0);
             BGprocs.erase(killpid);
