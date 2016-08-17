@@ -140,16 +140,20 @@ void getpl(char** tokens)
         else if (pid == 0)         
             getfl(tokens[i], "nodisplay");
     }
-    // wait for each process
-    for (; i > 1; i--)
-        waitpid(-1, NULL, 0);
+    // wait until all process terminates
+    while (1)
+    {
+        pid_t killpid = waitpid(-1, NULL, 0);
+        if (errno == ECHILD)
+            break;
+    }
 
     exit(0);
 }
 
 void getflRedirection(char* downloadFile, char* outputFile)
 {
-    int fileFD = open(outputFile, O_RDWR | O_CREAT | O_TRUNC);
+    int fileFD = open(outputFile, O_RDWR | O_CREAT | O_TRUNC, 644);
     if (fileFD < 0 )
     {
         error("Can't open output file");
