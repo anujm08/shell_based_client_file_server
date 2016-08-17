@@ -148,10 +148,10 @@ void getpl(char** tokens)
 
 void getflRedirection(char* downloadFile, char* outputFile)
 {
-    int fileFD = open(outputFile, O_RDWR | O_CREAT | O_TRUNC);
-    if (fileFD < 0 )
+    int fileFD = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, 644);
+    if (fileFD < 0)
     {
-        error("Can't open output file");
+        error("ERROR can't open output file");
     }
     else
     {
