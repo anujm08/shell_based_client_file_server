@@ -140,9 +140,8 @@ void getpl(char** tokens)
         else if (pid == 0)         
             getfl(tokens[i], "nodisplay");
     }
-    // wait for each process
-    for (; i > 1; i--)
-        waitpid(-1, NULL, 0);
+    // wait for each process it spawned
+    while (waitpid(0, NULL, 0) > 0) {}
 
     exit(0);
 }
@@ -356,7 +355,9 @@ void shellProcess(char** tokens)
         // reap the BGProcs
         MTX.lock();
         while (!BGprocs.empty())
-        {
+        {   
+            // -1 specifies `any` child, so even though gpid is different
+            // the bgprocs will be reaped, as they are children of the shell
             pid_t killpid = waitpid(-1, NULL, 0);
             BGprocs.erase(killpid);
         }
