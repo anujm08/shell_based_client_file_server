@@ -96,7 +96,6 @@ void cd(char** tokens)
 
 void getfl(char* filename, char* displayMode)
 {   
-    // TODO : potential memory leak
     char* sIP = strdup(serverIP.c_str());
     char* sPort = strdup(serverPort.c_str());
     char* arguments[] = {getflExec, filename, sIP, sPort, displayMode, NULL};
@@ -228,22 +227,14 @@ void* reapChildren(void* x)
     }
 }
 
-// TODO : "default" to be removed
-void setServer(char** tokens, bool defaultx = false)
+void setServer(char** tokens)
 {
-    if ((tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL) and not defaultx)
+    if (tokens[1] == NULL || tokens[2] == NULL || tokens[3] != NULL)
         fprintf(stderr, "usage: server [server-ip] [server-port]\n");
     else
     {
-        if (defaultx) 
-            serverIP = "127.0.0.1";
-        else
-            serverIP = string(tokens[1]);
-
-        if (defaultx) 
-            serverPort = "5001";
-        else
-            serverPort = string(tokens[2]);
+        serverIP = string(tokens[1]);
+        serverPort = string(tokens[2]);
     }
 }
 
@@ -251,7 +242,6 @@ void FGProcess(char** tokens)
 {
     string ftoken(tokens[0]);
 
-    // TODO : move usage inside the functions?
     if (ftoken == "getfl")
     {
         if (tokens[1] == NULL)
@@ -308,7 +298,6 @@ void BGProcess(char** tokens)
     if (setpgid(0, 0) != 0)
         error("ERROR gpid could not be set");
     
-    // TODO : move usage inside the functions?
     if (ftoken == "getbg")
     {
         if (tokens[1] == NULL || tokens[2] != NULL)
@@ -319,7 +308,6 @@ void BGProcess(char** tokens)
     exit(0);
 }
 
-// TODO : make the "server settings set" error common
 void shellProcess(char** tokens)
 {   
     string ftoken(*tokens);
@@ -327,11 +315,6 @@ void shellProcess(char** tokens)
     if (ftoken == "server")
     {
         setServer(tokens);
-    }
-    // TODO : to be removed
-    else if (ftoken == "ser")
-    {
-        setServer(tokens, true);
     }
 
     // it's the 'cd' command
@@ -358,7 +341,7 @@ void shellProcess(char** tokens)
         {   
             // -1 specifies `any` child, so even though gpid is different
             // the bgprocs will be reaped, as they are children of the shell
-            pid_t killpid = waitpid(-1, NULL, 0);
+            pid_t killpid = waitpid(*BGprocs.begin(), NULL, 0);
             BGprocs.erase(killpid);
         }
         MTX.unlock();
@@ -452,7 +435,7 @@ int  main(void)
     {           
         FGWasRunning = false;
         printf("Hello>");
-
+        fflush(stdout);
         bzero(line, MAX_INPUT_SIZE);
         fgets(line, MAX_INPUT_SIZE, stdin);
         FGWasRunning = true;
