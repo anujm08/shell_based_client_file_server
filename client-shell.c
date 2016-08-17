@@ -27,6 +27,8 @@ static pthread_t reaperT;
 static mutex MTX;
 static bool FGProcessRunning = false;
 
+static char* getflExec;
+
 #include "functions.h"
 
 void* reapChildren(void* x)
@@ -272,6 +274,9 @@ int  main(void)
     char line[MAX_INPUT_SIZE];          
     char **tokens;
 
+    getflExec = realpath("./get-one-file-sig", NULL);
+    if (getflExec == NULL)
+        perror("ERROR getting get-one-file-sig executable");
     // thread which reaps children
     pthread_create(&reaperT, NULL, reapChildren, NULL);
 
