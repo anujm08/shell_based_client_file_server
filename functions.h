@@ -71,7 +71,7 @@ void getfl(char* filename, char* displayMode)
     // TODO : potential memory leak
     char* sIP = strdup(serverIP.c_str());
     char* sPort = strdup(serverPort.c_str());
-    char* arguments[] = {"./get-one-file-sig", filename, sIP, sPort, displayMode, NULL};
+    char* arguments[] = {getflExec, filename, sIP, sPort, displayMode, NULL};
     if (execvp(arguments[0], arguments))
         perror("ERROR getfile");
 }
